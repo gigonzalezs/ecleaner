@@ -7,7 +7,11 @@
   "permissions": [
     "storage",
     "notifications",
-    "browsingData"
+    "browsingData",
+    "cookies"
+  ],
+  "host_permissions": [
+    "<all_urls>"
   ],
   "homepage_url": "https://webextension.org/listing/ecleaner.html",
   "icons": {
@@ -21,8 +25,7 @@
     "256": "/data/icons/256.png"
   },
   "background": {
-    "service_worker": "worker.js",
-    "scripts": ["worker.js"]
+    "service_worker": "worker.js"
   },
   "action": {
     "default_popup": "/data/panel/index.html"

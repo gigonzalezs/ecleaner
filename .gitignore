@@ -1,0 +1,6 @@
+# Ignorar carpeta de perfil de Chrome
+.chrome-profile/
+
+# Ignorar archivos de extensión
+v3.crx
+v3.pem

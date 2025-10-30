@@ -75,6 +75,147 @@ document.getElementById('submit').addEventListener('click', ({target}) => {
   });
 });
 
+// --- Cookies por dominio ---
+const $scan = document.getElementById('scan-domains');
+const $deleteSelected = document.getElementById('delete-selected-domains');
+const $list = document.getElementById('domain-list');
+const $filter = document.getElementById('filter-domains');
+const $selectAll = document.getElementById('select-all-domains');
+const $deselectAll = document.getElementById('deselect-all-domains');
+
+function pCookiesGetAll(filter) {
+  return new Promise((resolve, reject) => {
+    try {
+      chrome.cookies.getAll(filter || {}, resolve);
+    }
+    catch (e) { reject(e); }
+  });
+}
+
+function pCookiesRemove(details) {
+  return new Promise((resolve, reject) => {
+    try {
+      chrome.cookies.remove(details, result => {
+        // result is null on failure
+        resolve(result);
+      });
+    }
+    catch (e) { reject(e); }
+  });
+}
+
+function normalizeDomain(d) {
+  return (d || '').replace(/^\./, '');
+}
+
+function cookieUrl(c) {
+  const scheme = c.secure ? 'https' : 'http';
+  const host = normalizeDomain(c.domain);
+  const path = c.path || '/';
+  return `${scheme}://${host}${path}`;
+}
+
+async function scanDomains() {
+  $scan.disabled = true;
+  $scan.value = 'Escaneando...';
+  $deleteSelected.disabled = true;
+  if ($selectAll) $selectAll.disabled = true;
+  if ($deselectAll) $deselectAll.disabled = true;
+  $list.innerHTML = '';
+
+  try {
+    const cookies = await pCookiesGetAll({});
+    const map = new Map(); // domain -> count
+    for (const c of cookies) {
+      const dom = normalizeDomain(c.domain);
+      if (!dom) continue;
+      map.set(dom, (map.get(dom) || 0) + 1);
+    }
+    // Render
+    const entries = [...map.entries()].sort((a, b) => b[1] - a[1]);
+    for (const [domain, count] of entries) {
+      const li = document.createElement('li');
+      const id = `d-${domain.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+      li.innerHTML = `<label><input type="checkbox" value="${domain}" id="${id}"> ${domain} <small>(${count})</small></label>`;
+      $list.appendChild(li);
+    }
+    if (entries.length) {
+      $deleteSelected.disabled = false;
+      if ($selectAll) $selectAll.disabled = false;
+      if ($deselectAll) $deselectAll.disabled = false;
+    }
+    $scan.value = 'Re-escanear dominios';
+  }
+  catch (e) {
+    console.error(e);
+  }
+  finally {
+    $scan.disabled = false;
+  }
+}
+
+async function deleteSelectedDomains() {
+  const boxes = [...$list.querySelectorAll('input[type=checkbox]:checked')];
+  if (!boxes.length) return;
+  $deleteSelected.disabled = true;
+  const original = $deleteSelected.value;
+  $deleteSelected.value = 'Borrando...';
+
+  try {
+    for (const box of boxes) {
+      const domain = box.value;
+      const cs = await pCookiesGetAll({domain});
+      for (const c of cs) {
+        const details = {
+          url: cookieUrl(c),
+          name: c.name
+        };
+        if (c.storeId) details.storeId = c.storeId;
+        if (c.partitionKey) details.partitionKey = c.partitionKey;
+        await pCookiesRemove(details);
+      }
+    }
+  }
+  catch (e) {
+    console.error(e);
+  }
+  finally {
+    $deleteSelected.value = original;
+    await scanDomains(); // refresh list and counts
+  }
+}
+
+function updateDeleteButtonState() {
+  const anyChecked = $list.querySelector('input[type=checkbox]:checked');
+  $deleteSelected.disabled = !anyChecked;
+}
+
+function applyFilter() {
+  const q = ($filter.value || '').trim().toLowerCase();
+  const items = [...$list.querySelectorAll('li')];
+  for (const li of items) {
+    const txt = li.textContent.toLowerCase();
+    li.style.display = q && !txt.includes(q) ? 'none' : '';
+  }
+}
+
+function selectVisible(state) {
+  const visibleBoxes = [...$list.querySelectorAll('li')]
+    .filter(li => li.style.display !== 'none')
+    .flatMap(li => [...li.querySelectorAll('input[type=checkbox]')]);
+  for (const b of visibleBoxes) b.checked = state;
+  updateDeleteButtonState();
+}
+
+if ($scan && $deleteSelected && $list) {
+  $scan.addEventListener('click', scanDomains);
+  $deleteSelected.addEventListener('click', deleteSelectedDomains);
+  $list.addEventListener('change', updateDeleteButtonState);
+  if ($filter) $filter.addEventListener('input', applyFilter);
+  if ($selectAll) $selectAll.addEventListener('click', () => selectVisible(true));
+  if ($deselectAll) $deselectAll.addEventListener('click', () => selectVisible(false));
+}
+
 document.getElementById('exit').addEventListener('click', e => {
   const {time, types, originTypes} = settings();
   const obj = {

@@ -1,0 +1,33 @@
+{
+  // VS Code launch configs to run/debug the MV3 extension in a clean Chrome
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Chrome: Run eCleaner (unpacked, clean profile)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "chrome://extensions/",
+      "webRoot": "${workspaceFolder}",
+      "runtimeExecutable": "stable",
+      "userDataDir": "${workspaceFolder}/.chrome-profile",
+      "runtimeArgs": [
+        "--no-first-run",
+        "--no-default-browser-check"
+      ]
+    },
+    {
+      "name": "Chrome: Run eCleaner (open popup)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "about:blank",
+      "webRoot": "${workspaceFolder}",
+      "runtimeExecutable": "stable",
+      "userDataDir": "${workspaceFolder}/.chrome-profile",
+      "runtimeArgs": [
+        "--no-first-run",
+        "--no-default-browser-check"
+      ]
+      // Tip: after launch, pin the extension and click it to open the popup.
+    }
+  ]
+}
