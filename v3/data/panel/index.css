@@ -11,6 +11,13 @@ body {
   max-height: 580px;
   gap: 10px;
 }
+/* UI focus: hide everything before the domain cookies section */
+#since,
+#lists,
+#forget,
+hr {
+  display: none !important;
+}
 table {
   width: 100%;
 }
